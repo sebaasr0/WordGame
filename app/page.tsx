@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Board, { type Slot } from "@/components/Board";
 import HintBar from "@/components/HintBar";
 import LetterPool from "@/components/LetterPool";
@@ -28,7 +28,15 @@ export default function Page() {
 
   const level = chain?.levels[round] ?? null;
 
+  // Pending "advance to the next round" timer, so restarting mid-celebration
+  // cannot drop us into a round of the old chain.
+  const advanceTimer = useRef<number | null>(null);
+
   const startGame = useCallback(() => {
+    if (advanceTimer.current !== null) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
     const next = randomChain();
     setChain(next);
     setRound(0);
@@ -115,12 +123,15 @@ export default function Page() {
   );
 
   // -------------------------------------------------------------------------
-  // Submitting
+  // Checking — the moment the last box is filled, no submit step
   // -------------------------------------------------------------------------
 
-  const submit = useCallback(() => {
-    if (!level || status === "correct" || won) return;
-    if (slots.some((s) => s === null)) return;
+  useEffect(() => {
+    if (!chain || !level || won) return;
+    // Only judge a fresh, complete board. After a wrong guess the status parks
+    // at "wrong" so this cannot fire again until the player changes a letter.
+    if (status !== "playing") return;
+    if (slots.length === 0 || slots.some((s) => s === null)) return;
 
     const guess = slots.map((s) => s!.letter).join("");
     if (guess !== level.answer) {
@@ -130,18 +141,28 @@ export default function Page() {
 
     setStatus("correct");
     const isLast = round === TOTAL_ROUNDS - 1;
-    window.setTimeout(() => {
+    // Deliberately not cleaned up on re-run: setting the status above retriggers
+    // this effect, and a cleanup would cancel the advance before it fires.
+    advanceTimer.current = window.setTimeout(() => {
+      advanceTimer.current = null;
       if (isLast) {
         setWon(true);
         return;
       }
       const nextRound = round + 1;
       setRound(nextRound);
-      setSlots(new Array(chain!.levels[nextRound].answer.length).fill(null));
+      setSlots(new Array(chain.levels[nextRound].answer.length).fill(null));
       setRemoved([]);
       setStatus("playing");
     }, 900);
   }, [chain, level, round, slots, status, won]);
+
+  // Drop any pending advance if the component goes away.
+  useEffect(() => {
+    return () => {
+      if (advanceTimer.current !== null) window.clearTimeout(advanceTimer.current);
+    };
+  }, []);
 
   // -------------------------------------------------------------------------
   // Hints — three for the whole game, spent in a fixed order
@@ -203,10 +224,7 @@ export default function Page() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "Enter") {
-        e.preventDefault();
-        submit();
-      } else if (e.key === "Backspace") {
+      if (e.key === "Backspace") {
         e.preventDefault();
         backspace();
       } else if (/^[a-zA-Z]$/.test(e.key)) {
@@ -216,7 +234,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [backspace, submit, typeLetter]);
+  }, [backspace, typeLetter]);
 
   // -------------------------------------------------------------------------
   // Render
@@ -231,7 +249,6 @@ export default function Page() {
   }
 
   const solved = chain.words.slice(0, won ? TOTAL_ROUNDS : round);
-  const complete = slots.every((s) => s !== null);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center gap-7 px-4 py-8">
@@ -295,20 +312,11 @@ export default function Page() {
             onPick={pick}
           />
 
-          <div className="flex flex-col items-center gap-3">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!complete || status === "correct"}
-              className="rounded-full px-8 py-2.5 text-sm font-bold uppercase tracking-wide text-black transition disabled:cursor-not-allowed disabled:opacity-30 enabled:hover:brightness-110"
-              style={{ background: "var(--chalk)" }}
-            >
-              Submit
-            </button>
-            <p className="h-4 text-xs" style={{ color: status === "wrong" ? "var(--wrong)" : "var(--muted)" }}>
-              {status === "wrong" ? "Not the word we're after — try again." : "Tap letters or use your keyboard."}
-            </p>
-          </div>
+          <p className="h-4 text-xs" style={{ color: status === "wrong" ? "var(--wrong)" : "var(--muted)" }}>
+            {status === "wrong"
+              ? "Not the word we're after — change a letter."
+              : "Tap letters or use your keyboard. Backspace to undo."}
+          </p>
 
           <HintBar hintsUsed={hintsUsed} disabled={status === "correct"} onHint={useHint} />
 

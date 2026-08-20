@@ -67,4 +67,8 @@ data/engwords.txt       source dictionary
 
 ## Controls
 
-Click letters or type them. Backspace clears the last letter you placed, Enter submits.
+Click letters or type them. Backspace clears the last letter you placed.
+
+There is no submit step — the word is judged the moment the last box is filled.
+A correct word advances to the next round on its own; a wrong one shakes and
+waits for you to change a letter.
