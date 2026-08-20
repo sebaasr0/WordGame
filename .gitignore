@@ -1,5 +1,6 @@
 node_modules/
 .next/
+# Static export output — built fresh by the Pages workflow
 out/
 build/
 .DS_Store
