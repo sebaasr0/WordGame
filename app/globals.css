@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0f1417;
+  --panel: #161d21;
+  --chalk: #e8e6df;
+  --muted: #8b9499;
+  --gray-tile: #2b343a;
+  --gray-tile-border: #3d484f;
+  --carried: #4aa3c7;
+  --carried-soft: #17384a;
+  --correct: #5ba85f;
+  --wrong: #c0554d;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--chalk);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pop {
+  animation: pop 0.18s ease-out;
+}
+
+@keyframes flip {
+  0% {
+    transform: rotateX(0deg);
+  }
+  50% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.flip {
+  animation: flip 0.5s ease-in-out;
+}
