@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main] # main is already built by the Pages deploy
+  workflow_dispatch:
+
+# A new push to the same branch makes the older check pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Regenerates lib/chains.json from data/engwords.txt; next build typechecks.
+      - run: npm run build
+
+      - run: npm run verify
